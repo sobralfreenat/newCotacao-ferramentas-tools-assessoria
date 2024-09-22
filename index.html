@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Inserção de Itens</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+        h1 {
+            text-align: center;
+            color: #007bff;
+        }
+        form {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            width: calc(100% - 22px);
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .item-list {
+            margin-top: 20px;
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .item:last-child {
+            border-bottom: none;
+        }
+        .total {
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        .exchange-rate {
+            margin-top: 10px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: right;
+            margin-top: 10px;
+        }
+        @media (max-width: 600px) {
+            input, select, button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1>Formulário de Inserção de Itens</h1>
+<form id="itemForm">
+    <input type="text" id="itemName" placeholder="Nome da Ferramenta" required>
+    <input type="number" id="itemCost" placeholder="Custo" required>
+    <select id="itemCurrency" required>
+        <option value="R$">Real (R$)</option>
+        <option value="$">Dólar ($)</option>
+        <option value="€">Euro (€)</option>
+        <option value="£">Libras (£)</option>
+    </select>
+    <select id="itemCategory" required>
+        <option value="InfraWeb">InfraWeb</option>
+        <option value="Conteúdo">Conteúdo</option>
+        <option value="Ferramenta">Ferramenta</option>
+        <option value="Ativos">Ativos</option>
+    </select>
+    <select id="itemPeriodicity" required>
+        <option value="mensal">Mensal</option>
+        <option value="trimestral">Trimestral</option>
+        <option value="semestral">Semestral</option>
+        <option value="anual">Anual</option>
+    </select>
+    <label for="itemAdvisory">Assessoria:</label>
+    <select id="itemAdvisory" required>
+        <option value="7">7</option>
+        <option value="14">14</option>
+        <option value="21">21</option>
+    </select>
+    <button type="submit">Adicionar Item</button>
+</form>
+
+<div>
+    <h3>Fator 2 / Cotações das Moedas</h3>
+    <div class="exchange-rate">
+        <label for="rateUSD">Cotação Dólar (R$):</label>
+        <input type="number" id="rateUSD" placeholder="Cotação Dólar (R$)" step="0.01" required>
+    </div>
+    <div class="exchange-rate">
+        <label for="rateEUR">Cotação Euro (R$):</label>
+        <input type="number" id="rateEUR" placeholder="Cotação Euro (R$)" step="0.01" required>
+    </div>
+    <div class="exchange-rate">
+        <label for="rateGBP">Cotação Libras (R$):</label>
+        <input type="number" id="rateGBP" placeholder="Cotação Libras (R$)" step="0.01" required>
+    </div>
+</div>
+
+<div class="item-list" id="itemList"></div>
+<div class="total" id="totalCost">Total: R$0</div>
+
+<div class="button-container">
+    <button id="saveList">Salvar Lista</button>
+    <button id="loadList">Carregar Lista</button>
+</div>
+
+<script>
+    let items = [];
+    let total = 0;
+    let editIndex = -1; // Índice do item em edição
+
+    document.getElementById('itemForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const itemName = document.getElementById('itemName').value;
+        const itemCost = parseFloat(document.getElementById('itemCost').value);
+        const itemCurrency = document.getElementById('itemCurrency').value;
+        const itemCategory = document.getElementById('itemCategory').value;
+        const itemPeriodicity = document.getElementById('itemPeriodicity').value;
+        const itemAdvisory = document.getElementById('itemAdvisory').value;
+
+        if (editIndex > -1) {
+            // Atualiza o item existente
+            items[editIndex] = { name: itemName, cost: itemCost, currency: itemCurrency, category: itemCategory, periodicity: itemPeriodicity, advisory: itemAdvisory };
+            editIndex = -1; // Reseta o índice de edição
+        } else {
+            // Adiciona um novo item
+            items.push({ name: itemName, cost: itemCost, currency: itemCurrency, category: itemCategory, periodicity: itemPeriodicity, advisory: itemAdvisory });
+        }
+
+        updateItemList();
+        updateTotal();
+        document.getElementById('itemForm').reset();
+    });
+
+    function updateItemList() {
+        const itemList = document.getElementById('itemList');
+        itemList.innerHTML = '';
+
+        items.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.classList.add('item');
+            itemDiv.textContent = `${item.name} (${item.currency}${item.cost.toFixed(2)}) - Categoria: ${item.category}, Periodicidade: ${item.periodicity}, Assessoria: ${item.advisory}`;
+            
+            const editButton = document.createElement('button');
+            editButton.textContent = '✎'; // Usando o símbolo de edição
+            editButton.style.background = 'none';
+            editButton.style.border = 'none';
+            editButton.style.color = '#007bff';
+            editButton.style.cursor = 'pointer';
+            editButton.style.fontSize = '20px';
+            editButton.onclick = function() {
+                editIndex = index; // Define o índice do item a ser editado
+                loadItemForEditing(item);
+            };
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '✖'; // Usando o símbolo "X"
+            deleteButton.style.background = 'none';
+            deleteButton.style.border = 'none';
+            deleteButton.style.color = '#dc3545';
+            deleteButton.style.cursor = 'pointer';
+            deleteButton.style.fontSize = '20px';
+            deleteButton.onclick = function() {
+                items.splice(index, 1); // Remove o item da lista
+                updateItemList();
+                updateTotal();
+            };
+
+            itemDiv.appendChild(editButton);
+            itemDiv.appendChild(deleteButton);
+            itemList.appendChild(itemDiv);
+        });
+    }
+
+    function loadItemForEditing(item) {
+        document.getElementById('itemName').value = item.name;
+        document.getElementById('itemCost').value = item.cost;
+        document.getElementById('itemCurrency').value = item.currency;
+        document.getElementById('itemCategory').value = item.category;
+        document.getElementById('itemPeriodicity').value = item.periodicity;
+        document.getElementById('itemAdvisory').value = item.advisory;
+    }
+
+    function updateTotal() {
+        const rateUSD = parseFloat(document.getElementById('rateUSD').value) || 1;
+        const rateEUR = parseFloat(document.getElementById('rateEUR').value) || 1;
+        const rateGBP = parseFloat(document.getElementById('rateGBP').value) || 1;
+
+        total = items.reduce((acc, item) => {
+            let costInReais;
+            switch (item.currency) {
+                case '$':
+                    costInReais = item.cost * rateUSD;
+                    break;
+                case '€':
+                    costInReais = item.cost * rateEUR;
+                    break;
+                case '£':
+                    costInReais = item.cost * rateGBP;
+                    break;
+                default:
+                    costInReais = item.cost; // Já em reais
+            }
+            return acc + costInReais;
+        }, 0);
+
+        totalCost.textContent = `Att.Cotações- Total: R$${total.toFixed(2)}`;
+    }
+
+    document.getElementById('rateUSD').addEventListener('input', updateTotal);
+    document.getElementById('rateEUR').addEventListener('input', updateTotal);
+    document.getElementById('rateGBP').addEventListener('input', updateTotal);
+
+    // Função para salvar a lista em JSON
+    document.getElementById('saveList').addEventListener('click', function() {
+        const date = new Date();
+        const formattedDate = date.toLocaleDateString('pt-BR').replace(/\//g, '-');
+        const formattedTime = date.toTimeString().split(' ')[0].replace(/:/g, '-');
+        const fileName = `lista_ferramentas_${formattedDate}_${formattedTime}.json`;
+        const json = JSON.stringify(items, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Função para carregar a lista de um arquivo JSON
+    document.getElementById('loadList').addEventListener('click', function() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = event => {
+                items = JSON.parse(event.target.result);
+                updateItemList();
+                updateTotal();
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    });
+</script>
+
+</body>
+</html>
